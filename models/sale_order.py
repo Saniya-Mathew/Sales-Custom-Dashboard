@@ -9,6 +9,23 @@ class SaleOrder(models.Model):
         team_sales = {}
         salesperson_sales = {}
         product_sales = {}
+        order_status_details = {}
+        invoice_status_details = {}
+
+        all_orders = self.search([])
+
+        # Define order states to summarize
+        states = ['draft', 'sent', 'sale', 'done', 'cancel']
+
+        # Count number of orders in each state
+        for state in states:
+            count = self.search_count([('state', '=', state)])
+            order_status_details[state] = count
+
+            # Invoice status summary
+            invoice_states = ['no', 'to invoice', 'invoiced']
+            for inv_state in invoice_states:
+                invoice_status_details[inv_state] = len(all_orders.filtered(lambda o: o.invoice_status == inv_state))
 
         # Fetch all confirmed or done sale orders
         confirmed_orders = self.search([('state', 'in', ['sale', 'done'])])
@@ -17,7 +34,9 @@ class SaleOrder(models.Model):
         teams = self.env['crm.team'].search([])
         for team in teams:
             team_orders = confirmed_orders.filtered(lambda o: o.team_id.id == team.id)
-            team_sales[team.name] = sum(team_orders.mapped('amount_total'))
+            total = sum(team_orders.mapped('amount_total'))
+            if total > 0:
+                team_sales[team.name] = total
 
         # Sales by Salesperson
         users = self.env['res.users'].search([])
@@ -27,7 +46,7 @@ class SaleOrder(models.Model):
             if total > 0:
                 salesperson_sales[user.name] = total
 
-        # Product Sales
+        # Product Sales (total quantity sold per product)
         order_lines = self.env['sale.order.line'].search([
             ('order_id', 'in', confirmed_orders.ids)
         ])
@@ -40,5 +59,9 @@ class SaleOrder(models.Model):
             "sales": list(team_sales.values()),
             "salespersons": list(salesperson_sales.keys()),
             "salesperson_sales": list(salesperson_sales.values()),
-            "product_sales": product_sales  # <- All sold products with total quantity
+            "product_sales": product_sales,
+            "order_status_labels": list(order_status_details.keys()),
+            "order_status_values": list(order_status_details.values()),
+            "invoice_status_labels": list(invoice_status_details.keys()),
+            "invoice_status_values": list(invoice_status_details.values()),
         }
