@@ -6,12 +6,14 @@ class SalesDashboard extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        this.state = useState({ top_customers: [] });
 
         onMounted(async () => {
             if (typeof Chart === "undefined") {
                 await this._loadChartJs();
             }
             const result = await this.orm.call("sale.order", "get_sales_by_team", []);
+            this.state.top_customers = result.top_customers;
             this._createCharts(result);
         });
     }
@@ -25,6 +27,17 @@ class SalesDashboard extends Component {
             document.head.appendChild(script);
         });
     }
+//    onCustomerClick(customerId) {
+//    this.action.doAction({
+//        type: "ir.actions.act_window",
+//        name: "Customer",
+//        res_model: "res.partner",
+//        res_id: customerId,
+//        view_mode: "form",
+//        target: "current", // or 'new' to open in new tab/window
+//    });
+//}
+
 
     _createCharts(data) {
         const teamColors = ["#36A2EB", "#FF6384", "#FFCE56", "#224fbf"];
@@ -109,7 +122,6 @@ class SalesDashboard extends Component {
                     plugins: {
                         title: {
                             display: true,
-                            text: "Product-wise Quantity Sold" // ✅ not blank
                         },
                         legend: {
                             display: true,
@@ -155,6 +167,7 @@ class SalesDashboard extends Component {
                 }
             });
         }
+        // invoice Status Chart
         const invoiceChart = document.getElementById("invoiceChart");
         if (invoiceChart && Chart) {
             new Chart(invoiceChart, {
@@ -164,7 +177,7 @@ class SalesDashboard extends Component {
                     datasets: [{
                         label: "invoice Status",
                         data: data.invoice_status_values,
-                        backgroundColor: orderColors,
+                        backgroundColor: ["#c9061a","#3498db","#348011"],
                     }]
                 },
                 options: {

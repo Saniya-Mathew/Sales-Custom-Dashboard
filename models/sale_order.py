@@ -11,10 +11,9 @@ class SaleOrder(models.Model):
         product_sales = {}
         order_status_details = {}
         invoice_status_details = {}
+        customer_totals = {}
 
         all_orders = self.search([])
-
-        # Define order states to summarize
         states = ['draft', 'sent', 'sale', 'done', 'cancel']
 
         # Count number of orders in each state
@@ -54,6 +53,19 @@ class SaleOrder(models.Model):
             product_name = line.product_id.name
             product_sales[product_name] = product_sales.get(product_name, 0) + line.product_uom_qty
 
+        # Top Customers
+        for order in confirmed_orders:
+            partner = order.partner_id
+            customer_totals[partner] = customer_totals.get(partner, 0) + order.amount_total
+
+        sorted_customers = sorted(customer_totals.items(), key=lambda x: x[1], reverse=True)[:10]
+        top_customers_data = [{
+            'name': partner.name,
+            'amount': round(amount, 2),
+            'image': f'/web/image/res.partner/{partner.id}/image_128'
+        } for partner, amount in sorted_customers]
+        print(top_customers_data)
+
         return {
             "teams": list(team_sales.keys()),
             "sales": list(team_sales.values()),
@@ -64,4 +76,6 @@ class SaleOrder(models.Model):
             "order_status_values": list(order_status_details.values()),
             "invoice_status_labels": list(invoice_status_details.keys()),
             "invoice_status_values": list(invoice_status_details.values()),
+            "top_customers": top_customers_data
+
         }
